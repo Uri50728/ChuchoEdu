@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS ───────────────────────────
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  avatar    String?
+  theme     String   @default("light")
+  createdAt DateTime @default(now())
+
+  enrollments  Enrollment[]
+  ratings      Rating[]
+  certificates Certificate[]
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  CLIENT
+}
+
+// ─── PROFESORES ─────────────────────────
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  specialty String
+  createdAt DateTime @default(now())
+
+  courses Course[]
+}
+
+// ─── CURSOS ─────────────────────────────
+model Course {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  thumbnail   String?
+  teacherId   Int
+  createdAt   DateTime @default(now())
+
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  ratings     Rating[]
+}
+
+// ─── LECCIONES (videos en secuencia) ────
+model Lesson {
+  id        Int    @id @default(autoincrement())
+  title     String
+  videoUrl  String
+  order     Int
+  courseId  Int
+
+  course    Course       @relation(fields: [courseId], references: [id])
+  progress  LessonProgress[]
+}
+
+// ─── INSCRIPCIONES ──────────────────────
+model Enrollment {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  courseId         Int
+  currentLesson    Int      @default(0)
+  completed        Boolean  @default(false)
+  enrolledAt       DateTime @default(now())
+
+  user    User   @relation(fields: [userId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id])
+}
+
+// ─── PROGRESO POR LECCIÓN ───────────────
+model LessonProgress {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  lessonId  Int
+  watched   Boolean @default(false)
+
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+}
+
+// ─── CALIFICACIONES Y COMENTARIOS ───────
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  stars     Int      // 1 a 5
+  comment   String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+// ─── CERTIFICADOS ───────────────────────
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  issuedAt  DateTime @default(now())
+  fileUrl   String?
+
+  user User @relation(fields: [userId], references: [id])
+}
