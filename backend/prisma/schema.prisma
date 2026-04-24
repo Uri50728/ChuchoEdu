@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── USUARIOS ───────────────────────────
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -17,19 +16,19 @@ model User {
   avatar    String?
   theme     String   @default("light")
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   enrollments  Enrollment[]
   ratings      Rating[]
   certificates Certificate[]
+  progress     LessonProgress[]
 }
 
 enum Role {
   ADMIN
-  TEACHER
   CLIENT
 }
 
-// ─── PROFESORES ─────────────────────────
 model Teacher {
   id        Int      @id @default(autoincrement())
   name      String
@@ -40,76 +39,84 @@ model Teacher {
   courses Course[]
 }
 
-// ─── CURSOS ─────────────────────────────
 model Course {
   id          Int      @id @default(autoincrement())
   title       String
   description String?
   thumbnail   String?
   teacherId   Int
+  isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
   lessons     Lesson[]
   enrollments Enrollment[]
   ratings     Rating[]
+  certificates Certificate[]
 }
 
-// ─── LECCIONES (videos en secuencia) ────
 model Lesson {
   id        Int    @id @default(autoincrement())
   title     String
   videoUrl  String
   order     Int
   courseId  Int
+  duration  Int?
 
-  course    Course       @relation(fields: [courseId], references: [id])
-  progress  LessonProgress[]
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
 }
 
-// ─── INSCRIPCIONES ──────────────────────
 model Enrollment {
-  id               Int      @id @default(autoincrement())
-  userId           Int
-  courseId         Int
-  currentLesson    Int      @default(0)
-  completed        Boolean  @default(false)
-  enrolledAt       DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  courseId      Int
+  completed     Boolean  @default(false)
+  enrolledAt    DateTime @default(now())
+  completedAt   DateTime?
 
-  user    User   @relation(fields: [userId], references: [id])
-  course  Course @relation(fields: [courseId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
 }
 
-// ─── PROGRESO POR LECCIÓN ───────────────
 model LessonProgress {
-  id        Int     @id @default(autoincrement())
-  userId    Int
-  lessonId  Int
-  watched   Boolean @default(false)
+  id       Int     @id @default(autoincrement())
+  userId   Int
+  lessonId Int
+  watched  Boolean @default(false)
+  watchedAt DateTime?
 
-  lesson Lesson @relation(fields: [lessonId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
 }
 
-// ─── CALIFICACIONES Y COMENTARIOS ───────
 model Rating {
   id        Int      @id @default(autoincrement())
   userId    Int
   courseId  Int
-  stars     Int      // 1 a 5
+  stars     Int
   comment   String
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
   course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
 }
 
-// ─── CERTIFICADOS ───────────────────────
 model Certificate {
   id        Int      @id @default(autoincrement())
   userId    Int
   courseId  Int
   issuedAt  DateTime @default(now())
-  fileUrl   String?
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
 }
