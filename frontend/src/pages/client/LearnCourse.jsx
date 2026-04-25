@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import api from '../../utils/api'
-import { useAuth } from '../../context/AuthContext'
 
 function getYouTubeId(url) {
   if (!url) return null
@@ -21,27 +20,20 @@ function RatingModal({ courseId, onDone }) {
     setLoading(true)
     try {
       await api.post(`/courses/${courseId}/rate`, { stars, comment })
-      onDone()
-      navigate(`/app/certificates`)
-    } catch (err) {
-      setError(err.response?.data?.error || 'Error al calificar')
-    } finally {
-      setLoading(false)
-    }
+      onDone(); navigate('/app/certificates')
+    } catch (err) { setError(err.response?.data?.error || 'Error') }
+    finally { setLoading(false) }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4 animate-fade-in">
-      <div className="card p-8 max-w-md w-full animate-slide-up">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🎉</div>
-          <h2 className="font-display font-bold text-2xl">¡Felicitaciones!</h2>
-          <p className="text-slate-500 mt-1">Completaste el curso. Califica tu experiencia para obtener tu certificado.</p>
-        </div>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+      <div className="card p-6 max-w-sm w-full bg-white dark:bg-slate-900">
+        <h2 className="font-display font-bold text-xl mb-1">Curso completado</h2>
+        <p className="text-slate-500 text-sm mb-5">Califica tu experiencia para obtener el certificado.</p>
 
-        <div className="mb-5">
-          <label className="label">Calificación</label>
-          <div className="flex gap-2 text-4xl">
+        <div className="mb-4">
+          <label className="label">Calificacion</label>
+          <div className="flex gap-2 text-3xl">
             {[1,2,3,4,5].map(n => (
               <button key={n} onClick={() => setStars(n)}
                 className={`transition-transform hover:scale-110 ${n <= stars ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}`}>
@@ -51,16 +43,14 @@ function RatingModal({ courseId, onDone }) {
           </div>
         </div>
 
-        <div className="mb-5">
-          <label className="label">Comentario <span className="text-red-400">*</span></label>
-          <textarea className="input resize-none" rows={3} placeholder="¿Qué aprendiste? ¿Lo recomendarías?"
-            value={comment} onChange={e => setComment(e.target.value)} />
+        <div className="mb-4">
+          <label className="label">Comentario <span className="text-red-400 normal-case font-normal">(obligatorio)</span></label>
+          <textarea className="input resize-none" rows={3} placeholder="Que aprendiste? Lo recomendarias?" value={comment} onChange={e => setComment(e.target.value)} />
         </div>
 
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-
-        <button onClick={submit} disabled={loading} className="btn-primary w-full text-center">
-          {loading ? 'Enviando...' : '🏆 Calificar y obtener certificado'}
+        <button onClick={submit} disabled={loading} className="btn-primary w-full">
+          {loading ? 'Enviando...' : 'Calificar y obtener certificado'}
         </button>
       </div>
     </div>
@@ -69,113 +59,89 @@ function RatingModal({ courseId, onDone }) {
 
 export default function LearnCourse() {
   const { id } = useParams()
-  const [course, setCourse] = useState(null)
   const [lessons, setLessons] = useState([])
   const [progress, setProgress] = useState([])
-  const [currentLesson, setCurrentLesson] = useState(null)
+  const [current, setCurrent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [marking, setMarking] = useState(false)
   const [showRating, setShowRating] = useState(false)
-  const [enrollment, setEnrollment] = useState(null)
+  const [courseTitle, setCourseTitle] = useState('')
 
   useEffect(() => {
-    Promise.all([
-      api.get(`/courses/${id}`),
-      api.get(`/courses/${id}/my-progress`)
-    ]).then(([courseRes, progressRes]) => {
-      setCourse(courseRes.data)
-      setLessons(progressRes.data.lessons || [])
-      setProgress(progressRes.data.progress || [])
-      setEnrollment(progressRes.data.enrollment)
-
-      // Find current lesson: first unwatched
-      const watched = progressRes.data.progress?.filter(p => p.watched).map(p => p.lessonId) || []
-      const ls = progressRes.data.lessons || []
-      const next = ls.find(l => !watched.includes(l.id))
-      setCurrentLesson(next || ls[ls.length - 1] || null)
-    }).finally(() => setLoading(false))
+    Promise.all([api.get(`/courses/${id}`), api.get(`/courses/${id}/my-progress`)])
+      .then(([cr, pr]) => {
+        setCourseTitle(cr.data.title)
+        const ls = pr.data.lessons || []
+        const prog = pr.data.progress || []
+        setLessons(ls); setProgress(prog)
+        const watched = prog.filter(p => p.watched).map(p => p.lessonId)
+        const next = ls.find(l => !watched.includes(l.id))
+        setCurrent(next || ls[ls.length - 1] || null)
+      }).finally(() => setLoading(false))
   }, [id])
 
-  const isWatched = (lessonId) => progress.some(p => p.lessonId === lessonId && p.watched)
-
-  const canWatch = (lesson) => {
+  const isWatched = lid => progress.some(p => p.lessonId === lid && p.watched)
+  const canWatch = lesson => {
     const idx = lessons.findIndex(l => l.id === lesson.id)
-    if (idx === 0) return true
-    return isWatched(lessons[idx - 1].id)
+    return idx === 0 || isWatched(lessons[idx - 1].id)
   }
 
   const markWatched = async () => {
-    if (!currentLesson || marking) return
+    if (!current || marking) return
     setMarking(true)
     try {
-      const { data } = await api.post(`/courses/lessons/${currentLesson.id}/watch`)
-      setProgress(prev => {
-        const filtered = prev.filter(p => p.lessonId !== currentLesson.id)
-        return [...filtered, { lessonId: currentLesson.id, watched: true }]
-      })
-      if (data.completed) {
-        setEnrollment(e => ({ ...e, completed: true }))
-        setShowRating(true)
-      } else {
-        // Auto-advance
-        const idx = lessons.findIndex(l => l.id === currentLesson.id)
-        if (idx < lessons.length - 1) setCurrentLesson(lessons[idx + 1])
+      const { data } = await api.post(`/courses/lessons/${current.id}/watch`)
+      setProgress(prev => [...prev.filter(p => p.lessonId !== current.id), { lessonId: current.id, watched: true }])
+      if (data.completed) { setShowRating(true) }
+      else {
+        const idx = lessons.findIndex(l => l.id === current.id)
+        if (idx < lessons.length - 1) setCurrent(lessons[idx + 1])
       }
-    } catch (err) {
-      alert(err.response?.data?.error || 'Error')
-    } finally {
-      setMarking(false)
-    }
+    } catch (err) { alert(err.response?.data?.error || 'Error') }
+    finally { setMarking(false) }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-10 h-10 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" /></div>
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" /></div>
 
-  const ytId = getYouTubeId(currentLesson?.videoUrl)
+  const ytId = getYouTubeId(current?.videoUrl)
   const watchedCount = progress.filter(p => p.watched).length
+  const pct = lessons.length ? Math.round((watchedCount / lessons.length) * 100) : 0
 
   return (
-    <div className="animate-fade-in -m-8">
+    <div className="-m-8 flex flex-col h-screen">
       {showRating && <RatingModal courseId={id} onDone={() => setShowRating(false)} />}
 
-      {/* Header */}
-      <div className="flex items-center gap-4 px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-        <Link to={`/app/courses/${id}`} className="text-slate-500 hover:text-brand-600 text-sm">← Volver</Link>
-        <h1 className="font-display font-bold text-lg flex-1 truncate">{course?.title}</h1>
-        <span className="text-sm text-slate-500 font-medium">{watchedCount}/{lessons.length} completadas</span>
+      {/* Top bar */}
+      <div className="flex items-center gap-4 px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <Link to={`/app/courses/${id}`} className="text-sm text-slate-500 hover:text-brand-600">Volver</Link>
+        <h1 className="font-semibold text-sm flex-1 truncate">{courseTitle}</h1>
+        <span className="text-xs text-slate-500">{watchedCount}/{lessons.length} lecciones</span>
       </div>
 
-      <div className="flex h-[calc(100vh-120px)]">
-        {/* Video area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Video */}
         <div className="flex-1 flex flex-col bg-black">
           <div className="flex-1 flex items-center justify-center">
-            {currentLesson ? (
-              ytId ? (
-                <iframe
-                  key={currentLesson.id}
-                  src={`https://www.youtube.com/embed/${ytId}?rel=0`}
-                  className="w-full aspect-video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <video key={currentLesson.id} src={currentLesson.videoUrl} controls className="w-full max-h-full" />
-              )
+            {current ? (
+              ytId
+                ? <iframe key={current.id} src={`https://www.youtube.com/embed/${ytId}?rel=0`} className="w-full aspect-video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                : <video key={current.id} src={current.videoUrl} controls className="w-full max-h-full" />
             ) : (
-              <div className="text-white text-center"><p>Selecciona una lección</p></div>
+              <p className="text-white text-sm">Selecciona una leccion</p>
             )}
           </div>
 
-          {currentLesson && (
-            <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
+          {current && (
+            <div className="bg-slate-900 px-5 py-3 flex items-center justify-between shrink-0">
               <div>
-                <h2 className="text-white font-semibold">{currentLesson.title}</h2>
-                <p className="text-slate-400 text-sm">Lección {lessons.findIndex(l => l.id === currentLesson.id) + 1} de {lessons.length}</p>
+                <p className="text-white text-sm font-medium">{current.title}</p>
+                <p className="text-slate-400 text-xs">Leccion {lessons.findIndex(l => l.id === current.id) + 1} de {lessons.length}</p>
               </div>
-              {isWatched(currentLesson.id) ? (
-                <span className="badge bg-green-500/20 text-green-400 border border-green-500/30">✓ Completada</span>
+              {isWatched(current.id) ? (
+                <span className="badge bg-green-500/20 text-green-400 border border-green-500/20 text-xs">Completada</span>
               ) : (
-                <button onClick={markWatched} disabled={marking} className="btn-primary">
-                  {marking ? 'Guardando...' : '✓ Marcar como vista'}
+                <button onClick={markWatched} disabled={marking} className="btn-primary text-xs">
+                  {marking ? 'Guardando...' : 'Marcar como vista'}
                 </button>
               )}
             </div>
@@ -183,34 +149,34 @@ export default function LearnCourse() {
         </div>
 
         {/* Lesson list */}
-        <div className="w-80 bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mb-1">
-              <div className="bg-brand-600 h-2 rounded-full transition-all" style={{ width: `${lessons.length ? (watchedCount / lessons.length) * 100 : 0}%` }} />
+        <div className="w-72 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+          <div className="p-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mb-1">
+              <div className="bg-brand-600 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
             </div>
-            <p className="text-xs text-slate-500">{Math.round(lessons.length ? (watchedCount / lessons.length) * 100 : 0)}% completado</p>
+            <p className="text-xs text-slate-500">{pct}% completado</p>
           </div>
-          <div className="p-2 space-y-1">
+          <div className="overflow-y-auto flex-1 p-2 space-y-1">
             {lessons.map((l, i) => {
               const watched = isWatched(l.id)
               const unlocked = canWatch(l)
-              const active = currentLesson?.id === l.id
+              const active = current?.id === l.id
               return (
                 <button key={l.id} disabled={!unlocked}
-                  onClick={() => unlocked && setCurrentLesson(l)}
-                  className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition text-sm ${
+                  onClick={() => unlocked && setCurrent(l)}
+                  className={`w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg transition text-xs ${
                     active ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
                     : unlocked ? 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                     : 'opacity-40 cursor-not-allowed text-slate-500'
                   }`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold shrink-0 text-xs ${
                     watched ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
                     : active ? 'bg-brand-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
                   }`}>
-                    {watched ? '✓' : !unlocked ? '🔒' : i + 1}
-                  </div>
-                  <span className="flex-1 line-clamp-2">{l.title}</span>
+                    {watched ? '✓' : !unlocked ? '-' : i + 1}
+                  </span>
+                  <span className="flex-1 line-clamp-2 leading-snug">{l.title}</span>
                 </button>
               )
             })}

@@ -4,34 +4,30 @@ import api from '../../utils/api'
 
 function Stars({ value }) {
   return (
-    <span className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => (
-        <span key={i} className={i <= Math.round(value) ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}>★</span>
-      ))}
+    <span className="text-amber-400 text-sm">
+      {'★'.repeat(Math.round(value))}
+      <span className="text-slate-300 dark:text-slate-600">{'★'.repeat(5 - Math.round(value))}</span>
     </span>
   )
 }
 
 function CourseCard({ course }) {
   return (
-    <Link to={`/app/courses/${course.id}`} className="card hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden block">
-      <div className="aspect-video bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/40 dark:to-slate-800 flex items-center justify-center text-5xl">
+    <Link to={`/app/courses/${course.id}`} className="card hover:shadow-md transition-shadow overflow-hidden block">
+      <div className="aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
         {course.thumbnail
           ? <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-          : '🎓'}
+          : <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">Sin portada</div>}
       </div>
-      <div className="p-5">
-        <h3 className="font-display font-bold text-base mb-1 line-clamp-2">{course.title}</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{course.teacher?.name}</p>
-        {course.description && (
-          <p className="text-xs text-slate-400 mb-3 line-clamp-2">{course.description}</p>
-        )}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+      <div className="p-4">
+        <h3 className="font-semibold text-sm mb-0.5 line-clamp-2">{course.title}</h3>
+        <p className="text-xs text-slate-500 mb-2">{course.teacher?.name}</p>
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span className="flex items-center gap-1">
             <Stars value={course.avgRating} />
-            <span className="text-xs text-slate-500">({course._count?.ratings || 0})</span>
-          </div>
-          <span className="text-xs text-slate-500">{course._count?.enrollments || 0} alumnos</span>
+            <span>({course._count?.ratings || 0})</span>
+          </span>
+          <span>{course._count?.enrollments || 0} alumnos</span>
         </div>
       </div>
     </Link>
@@ -53,40 +49,30 @@ export default function ClientHome() {
   )
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8">
-        <h1 className="font-display font-bold text-3xl mb-1">Explorar cursos</h1>
-        <p className="text-slate-500">Elige tu próxima habilidad</p>
-      </div>
+    <div>
+      <h1 className="page-title">Explorar cursos</h1>
+      <p className="page-subtitle">Elige tu próxima habilidad</p>
 
-      <div className="mb-6">
-        <input
-          className="input max-w-md"
-          placeholder="🔍 Buscar cursos o profesores..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
+      <input className="input max-w-sm mb-6" placeholder="Buscar cursos o profesores..." value={search} onChange={e => setSearch(e.target.value)} />
 
       {loading ? (
-        <div className="grid md:grid-cols-3 gap-6">
-          {[1,2,3,4,5,6].map(i => (
+        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
             <div key={i} className="card overflow-hidden animate-pulse">
               <div className="aspect-video bg-slate-100 dark:bg-slate-800" />
-              <div className="p-5 space-y-3">
-                <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full w-3/4" />
-                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full w-1/2" />
+              <div className="p-4 space-y-2">
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
               </div>
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-slate-400">
-          <div className="text-5xl mb-4">📭</div>
+        <div className="text-center py-16 text-slate-400">
           <p className="font-semibold">No se encontraron cursos</p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map(c => <CourseCard key={c.id} course={c} />)}
         </div>
       )}
