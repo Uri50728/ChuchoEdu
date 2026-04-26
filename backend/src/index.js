@@ -15,7 +15,7 @@ const app = express();
 
 async function seedAdmin() {
   try {
-    const adminEmail    = process.env.ADMIN_EMAIL    || 'admin@eduplatform.com';
+    const adminEmail    = process.env.ADMIN_EMAIL    || 'admin@chuchoedu.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (!exists) {

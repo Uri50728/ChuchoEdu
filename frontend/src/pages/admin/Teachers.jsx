@@ -30,7 +30,7 @@ export default function AdminTeachers() {
   }
 
   const remove = async (id) => {
-    if (!confirm('Eliminar este profesor?')) return
+    if (!confirm('¿Eliminar este profesor?')) return
     try { await api.delete(`/admin/teachers/${id}`); setTeachers(t => t.filter(x => x.id !== id)) }
     catch { alert('No se puede eliminar, tiene cursos asignados') }
   }
@@ -39,12 +39,37 @@ export default function AdminTeachers() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div><h1 className="page-title">Profesores</h1><p className="page-subtitle">Gestiona el cuerpo docente</p></div>
-        <button onClick={openNew} className="btn-primary">Agregar profesor</button>
+      <div className="flex items-center justify-between mb-5 gap-3">
+        <div>
+          <h1 className="page-title">Profesores</h1>
+          <p className="page-subtitle">Gestiona el cuerpo docente</p>
+        </div>
+        <button onClick={openNew} className="btn-primary shrink-0">Agregar</button>
       </div>
 
-      <div className="card overflow-hidden">
+      {/* Mobile: cards. Desktop: table */}
+      <div className="md:hidden space-y-3">
+        {teachers.length === 0 ? (
+          <div className="card p-8 text-center text-slate-400 text-sm">Sin profesores registrados</div>
+        ) : teachers.map(t => (
+          <div key={t.id} className="card p-4">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <p className="font-semibold text-sm">{t.name}</p>
+                <p className="text-xs text-slate-500">{t.email}</p>
+                <span className="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 mt-1">{t.specialty}</span>
+              </div>
+              <span className="text-xs text-slate-400 shrink-0">{t._count?.courses || 0} cursos</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => openEdit(t)} className="btn-secondary text-xs flex-1">Editar</button>
+              <button onClick={() => remove(t.id)} className="btn-danger text-xs flex-1">Eliminar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 text-left">
@@ -55,7 +80,7 @@ export default function AdminTeachers() {
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {teachers.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Sin profesores registrados</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">Sin profesores registrados</td></tr>
             ) : teachers.map(t => (
               <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                 <td className="px-4 py-3 font-medium">{t.name}</td>
@@ -75,8 +100,8 @@ export default function AdminTeachers() {
       </div>
 
       {modal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="card p-6 w-full max-w-sm bg-white dark:bg-slate-900">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 px-4 pb-4 sm:pb-0">
+          <div className="card p-5 w-full max-w-sm bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-xl">
             <h2 className="font-display font-bold text-lg mb-4">{editing ? 'Editar profesor' : 'Nuevo profesor'}</h2>
             {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
             <div className="space-y-3">

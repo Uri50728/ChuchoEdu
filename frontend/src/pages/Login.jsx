@@ -22,8 +22,11 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition">
+          ← Volver al inicio
+        </Link>
         <div className="text-center mb-8">
-          <Link to="/" className="font-display font-bold text-xl">EduPlatform</Link>
+          <Link to="/" className="font-display font-bold text-xl">ChuchoEdu</Link>
           <h1 className="font-display font-bold text-2xl mt-4">Iniciar sesión</h1>
           <p className="text-slate-500 text-sm mt-1">Ingresa tus credenciales para continuar</p>
         </div>

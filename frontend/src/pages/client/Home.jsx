@@ -17,9 +17,9 @@ function CourseCard({ course }) {
       <div className="aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
         {course.thumbnail
           ? <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">Sin portada</div>}
+          : <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Sin portada</div>}
       </div>
-      <div className="p-4">
+      <div className="p-3 md:p-4">
         <h3 className="font-semibold text-sm mb-0.5 line-clamp-2">{course.title}</h3>
         <p className="text-xs text-slate-500 mb-2">{course.teacher?.name}</p>
         <div className="flex items-center justify-between text-xs text-slate-500">
@@ -53,14 +53,14 @@ export default function ClientHome() {
       <h1 className="page-title">Explorar cursos</h1>
       <p className="page-subtitle">Elige tu próxima habilidad</p>
 
-      <input className="input max-w-sm mb-6" placeholder="Buscar cursos o profesores..." value={search} onChange={e => setSearch(e.target.value)} />
+      <input className="input max-w-full md:max-w-sm mb-5" placeholder="Buscar cursos o profesores..." value={search} onChange={e => setSearch(e.target.value)} />
 
       {loading ? (
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="card overflow-hidden animate-pulse">
               <div className="aspect-video bg-slate-100 dark:bg-slate-800" />
-              <div className="p-4 space-y-2">
+              <div className="p-3 space-y-2">
                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
                 <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
               </div>
@@ -69,10 +69,10 @@ export default function ClientHome() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
-          <p className="font-semibold">No se encontraron cursos</p>
+          <p className="font-semibold text-sm">No se encontraron cursos</p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {filtered.map(c => <CourseCard key={c.id} course={c} />)}
         </div>
       )}
